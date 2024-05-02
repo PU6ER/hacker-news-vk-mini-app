@@ -1,44 +1,71 @@
-import { FC } from 'react';
+import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router'
 import {
-  Panel,
-  PanelHeader,
-  Header,
-  Button,
-  Group,
-  Cell,
-  Div,
-  Avatar,
-  NavIdProps,
-} from '@vkontakte/vkui';
-import { UserInfo } from '@vkontakte/vk-bridge';
-import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
+	Button,
+	Group,
+	NavIdProps,
+	Panel,
+	PanelHeader,
+	RichCell,
+	Spinner,
+} from '@vkontakte/vkui'
+import { FC, useEffect, useState } from 'react'
+import { fetchNews, formatDate } from '../api/api'
+import { INews } from '../types/news.types'
 
-export interface HomeProps extends NavIdProps {
-  fetchedUser?: UserInfo;
+export const Home: FC<NavIdProps> = ({ id }) => {
+	const routeNavigator = useRouteNavigator()
+	const [news, setNews] = useState<INews[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		fetchNews().then(res => {
+			setNews(res)
+			setIsLoading(false)
+		})
+
+		const interval = setInterval(() => {
+			setIsLoading(true)
+			fetchNews().then(res => {
+				setNews(res)
+				setIsLoading(false)
+			})
+		}, 60000)
+
+		return () => clearInterval(interval)
+	}, [])
+
+	const handleRefreshClick = () => {
+		setIsLoading(true)
+		fetchNews().then(res => {
+			setNews(res)
+			setIsLoading(false)
+		})
+	}
+	return (
+		<Panel id={id}>
+			<PanelHeader>Hacker News</PanelHeader>
+			<Button mode='primary' appearance='positive' onClick={handleRefreshClick}>
+				Refresh
+			</Button>
+			{isLoading ? (
+				<Spinner size='large' style={{ margin: '20px 0' }} />
+			) : (
+				news && (
+					<Group>
+						{news.map(news => (
+							<RichCell
+								key={news.id}
+								text={`by ${news.by}`}
+								subhead={`${news.score} points`}
+								caption={formatDate(news.time)}
+								onClick={() => routeNavigator.push(`news/${news.id}`)}
+							>
+								{news.title}
+							</RichCell>
+						))}
+					</Group>
+				)
+			)}
+		</Panel>
+	)
 }
-
-export const Home: FC<HomeProps> = ({ id, fetchedUser }) => {
-  const { photo_200, city, first_name, last_name } = { ...fetchedUser };
-  const routeNavigator = useRouteNavigator();
-
-  return (
-    <Panel id={id}>
-      <PanelHeader>Главная</PanelHeader>
-      {fetchedUser && (
-        <Group header={<Header mode="secondary">User Data Fetched with VK Bridge</Header>}>
-          <Cell before={photo_200 && <Avatar src={photo_200} />} subtitle={city?.title}>
-            {`${first_name} ${last_name}`}
-          </Cell>
-        </Group>
-      )}
-
-      <Group header={<Header mode="secondary">Navigation Example</Header>}>
-        <Div>
-          <Button stretched size="l" mode="secondary" onClick={() => routeNavigator.push('persik')}>
-            Покажите Персика, пожалуйста!
-          </Button>
-        </Div>
-      </Group>
-    </Panel>
-  );
-};
