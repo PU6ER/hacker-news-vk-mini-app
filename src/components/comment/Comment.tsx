@@ -31,7 +31,7 @@ const Comment = ({ id }: ICommentProps) => {
 				commentData && (
 					<Div>
 						<Card style={{ padding: '5px' }}>
-							<Headline>by {commentData.by}</Headline>
+							<Headline style={{marginBottom:'5px'}}>by {commentData.by}</Headline>
 							<Headline>{commentData.text}</Headline>
 						</Card>
 						{commentData.kids && (
